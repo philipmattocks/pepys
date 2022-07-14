@@ -2,9 +2,11 @@ import re
 from urllib import request
 from nltk import word_tokenize
 from nltk.util import ngrams
+
 import pandas as pd
 import logging
 from datetime import datetime
+from string import punctuation
 
 def get_ngrams(text,n):
     n_gram_list = ngrams(word_tokenize(text), n)
@@ -26,7 +28,7 @@ def set_up_logging(level):
     log.addHandler(ch)
     return log
 
-def process_raw_text(text):
+def get_only_original_text(text):
     logger.info('removing non-original text')
     text = text[text.find('JANUARY 1659-1660'):text.rfind('END OF THE DIARY.')]
     text = re.sub("(\[(?:\[??[^\[]*?\]))", "", text) # remove everything between square brackets
@@ -45,6 +47,34 @@ def find_proper_nouns(tokens):
         # names.add(' '.join([t[i],t[i]]))
     return names
 
+def get_structured_data(lines):
+    entries = []
+    for i,l in enumerate(lines):
+        date_match = re.match('^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d)$',l)
+        if date_match:
+            month = date_match.group(1)
+            year = date_match.group(2)
+            for j,l2 in enumerate(lines[i+1:]):
+                if re.match('^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d)$',l2):
+                    break
+                day_regex = '^(?:[a-zA-Z]{3,}\.*\s)*(\d{1,2})(?:th|rd|st|d|nd)\.*\s[A-Z\(]'
+                day_match = re.match(day_regex, l2)
+                if day_match:
+                    day = day_match.group(1)
+                    lines_for_entry = []
+                    for k in lines[i+j+1:]:
+                        day_match2 = re.match(day_regex, k)
+                        if day_match2 and day != day_match2.group(1):
+                            break
+                        if re.search('\w',k):
+                            lines_for_entry.append(k)
+                            date_obj = datetime(int(year), int(MONTHS[month]), int(day))
+                            date_string = date_obj.strftime("%Y-%m-%d")
+                            logger.debug(f'adding entry for: {date_string}')
+                    entries.append({'date':date_string, 'entry':' '.join(lines_for_entry)})
+    return entries
+
+
 if __name__ == "__main__":
     logger = set_up_logging('INFO')
     logger.info('Logging at INFO')
@@ -57,39 +87,16 @@ if __name__ == "__main__":
         #raw = f.read()
 
     url = "https://www.gutenberg.org/files/4200/4200-0.txt"
+    logger.info(f'Downloading from {url}')
     response = request.urlopen(url)
     raw = response.read().decode('utf8')
-    raw = process_raw_text(raw)
+    raw = get_only_original_text(raw)
     lines = raw.splitlines()
-    entries = []
-
-    for i,l in enumerate(lines):
-        date_match = re.match('^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d)$',l)
-        if date_match:
-
-            month = date_match.group(1)
-            year = date_match.group(2)
-            for j,l2 in enumerate(lines[i+1:]):
-                if re.match('^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d)$',l2):
-                    break
-                day_match = re.match('^(?:[a-zA-Z]{3,}\.*\s)*(\d{1,2})(?:th|rd|st|d|nd)\.*\s[A-Z\(]', l2)
-                if day_match:
-                    entry_text = []
-                    day = day_match.group(1)
-                    lines_for_entry = []
-                    for k in lines[i+j+1:]:
-                        day_match2 = re.match('^(?:[a-zA-Z]{3,}\s)*(\d{1,2})(?:th|rd|st|d|nd)\.*\s[A-Z]', k)
-                        if day_match2 and day != day_match2.group(1):
-                            break
-                        if re.search('\w',k):
-                            lines_for_entry.append(k)
-                            date_obj = datetime(int(year), int(MONTHS[month]), int(day))
-                            date_string = date_obj.strftime("%Y-%m-%d")
-                            logger.debug(f'adding entry for: {date_string}')
-                    entries.append({'date':date_string, 'entry':' '.join(lines_for_entry)})
+    entries = get_structured_data(lines)
     logger.info(f'Number of entries: {len(entries)}')
     logger.info(f'Saving to entries.csv')
-    pd.DataFrame(entries).to_csv('entries.csv', index=False)
+    entries_df = pd.DataFrame(entries)
+    entries_df.to_csv('entries.csv', index=False)
 
 
 
