@@ -1,4 +1,6 @@
 nltk
 pandas
+contractions
+textblob
 matplotlib
-flair
+vaderSentiment
