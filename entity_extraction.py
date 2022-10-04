@@ -2,7 +2,9 @@ import pandas as pd
 import plotly.express as px
 import spacy
 from collections import Counter
+# do the following in cmd first time to d/l Spacy model: python -m spacy download en_core_web_md
 nlp = spacy.load('en_core_web_md')
+# only need the 2 following if exporting to plotly chart studio
 import chart_studio.plotly as py
 import chart_studio
 
@@ -60,9 +62,9 @@ def get_entity_type_counts(entities):
 
 def plot_locations(df, zoom=10, radius=30, opacity=1, mapbox_style="carto-positron", range_color=None):
 
-    # TO add chart to Plotly uncomment and fill in the following with plotly account details:
-    username = 'xxx'
-    api_key = 'xxx'
+    # TO add chart to plotly chart studio uncomment and fill in the following with valid plotly account details:
+    # username = 'xxx'
+    # api_key = 'xxx'
     # chart_studio.tools.set_credentials_file(username=username,
     #                                         api_key=api_key)
     fig = px.density_mapbox(df, lat='latitude', lon='longitude', z='count', radius=radius,
@@ -72,14 +74,13 @@ def plot_locations(df, zoom=10, radius=30, opacity=1, mapbox_style="carto-positr
                             range_color=range_color
                             )
     fig.show()
-    # unccoment the following to add to plotly
+    # unccoment the following to add to plotly chart studio
     # py.plot(fig, filename="plotly_scatter", auto_open=True)
 
 
 def extract_entities(df):
     # replace usage of 'streete' with 'street' as Pepys uses these inconsistently
     df['entry'] = df['entry'].str.replace('Streete', 'Street')
-    # df['processed'] = df['entry'].apply(sent_tokenize)
     df['entities'] = df['entry'].apply(nlp)
     entity_type_counts = get_entity_type_counts(df['entities'])
     entity_counts = get_counts_of_all_entity(df['entities'], 25)
