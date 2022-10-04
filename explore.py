@@ -57,8 +57,9 @@ def plot_freq_dist(fd):
     sns.barplot(y=fd_y,x=fd_x,color='black')
     plt.show()
 
+
 if __name__ == "__main__":
-    entries_raw = pd.read_csv('entries.csv')[:200]
+    entries_raw = pd.read_csv('entries.csv')
     entries = show_days_with_missing_entities(entries_raw)
     prop_with_entries = len(entries.loc[entries['missing_entry'] == False]) / len(entries)
     print(f'Proportion of days with entries: {prop_with_entries}')
