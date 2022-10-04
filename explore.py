@@ -13,12 +13,14 @@ import string
 nltk.download('punkt')
 nltk.download('stopwords')
 
-def show_days_with_missing_enties(df):
+
+def show_days_with_missing_entities(df):
     """
-    Some days are missing from the DF ie when Pepys didn't make an entry, this adds those days in with None in the entry column
+    Pad entries DF so that days with missing entries have rows
     """
     df['date_dt'] = df['date'].apply(lambda x: datetime.strptime(x, "%Y-%m-%d"))
-    date_generated = [(df['date_dt'].min() + timedelta(days=x)).strftime('%Y-%m-%d') for x in range(0, (df['date_dt'].max()-df['date_dt'].min()).days)]
+    date_generated = [(df['date_dt'].min() + timedelta(days=x)).strftime('%Y-%m-%d') for x in
+                      range(0, (df['date_dt'].max()-df['date_dt'].min()).days)]
     df_filled = pd.DataFrame(date_generated,columns=['date'])
     df = df_filled.merge(df, on='date', how='left')[['date', 'entry']]
     df['missing_entry'] = df['entry'].isna() == True
@@ -48,18 +50,25 @@ def freq_dist(df, n):
     return FreqDist(ngrams_dist)
 
 
+def plot_freq_dist(fd):
+    fd_dict = dict(fd.most_common(25))
+    fd_x = list(fd_dict.values())
+    fd_y = [' '.join(i) for i in fd_dict.keys()]
+    sns.barplot(y=fd_y,x=fd_x,color='black')
+    plt.show()
+
 if __name__ == "__main__":
-    entries_raw = pd.read_csv('entries.csv')
-    entries = show_days_with_missing_enties(entries_raw)
+    entries_raw = pd.read_csv('entries.csv')[:200]
+    entries = show_days_with_missing_entities(entries_raw)
     prop_with_entries = len(entries.loc[entries['missing_entry'] == False]) / len(entries)
     print(f'Proportion of days with entries: {prop_with_entries}')
     create_dated_heatmap(entries, 'missing_entry')
     entries['missing_entry'] = entries['entry'].isna() == True
     fd1 = freq_dist(entries_raw, 1)
-    # fd2 = freq_dist(entries, 2)
-    # fd3 = freq_dist(entries, 3)
-    fd1.plot(25, title='Freq dist of top 25 words')
-    # fd2.plot(25, title='Freq dist of top 25 2grams')
-    # fd3.plot(25, title='Freq dist of top 25 3grams')
+    fd2 = freq_dist(entries_raw, 2)
+    fd3 = freq_dist(entries_raw, 3)
+    plot_freq_dist(fd1)
+    plot_freq_dist(fd2)
+    plot_freq_dist(fd3)
 
 
