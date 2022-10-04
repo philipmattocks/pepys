@@ -33,7 +33,7 @@ def create_dated_heatmap(df, column_name, agg=np.sum):
     months = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct',
               11: 'Nov', 12: 'Dec'}
     df['month'] = df['month'].replace(months)
-    df_piv = df.pivot_table(index='year', columns='month', values=column_name, aggfunc=agg, sort=False).fillna(0)
+    df_piv = df.pivot_table(index='year', columns='month', values=column_name, aggfunc=agg).fillna(0)
     fig, ax = plt.subplots(figsize=(10, 10))
     sns.heatmap(df_piv, annot=True, linewidths=1, linecolor='white', ax=ax, cmap="BuPu")
     plt.show()
