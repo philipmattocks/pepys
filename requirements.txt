@@ -2,8 +2,10 @@ nltk
 pandas
 contractions
 textblob
-matplotlib
 vaderSentiment
 spacy
-en_core_web_sm
 plotly
+seaborn
+matplotlib
+chart_studio
+
