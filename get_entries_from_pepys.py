@@ -1,7 +1,5 @@
 import re
 from urllib import request
-from nltk import word_tokenize
-from nltk.util import ngrams
 import pandas as pd
 from datetime import datetime
 
@@ -22,49 +20,42 @@ def remove_text_pepys_did_not_write(text):
     text = re.sub(square_bracket_comments_inline, "", text)
     square_bracket_paragraphs = '\s\s\s\s\s\[[^]]+\]'
     text = re.sub(square_bracket_paragraphs, "", text)
+    with open('original_text_only.txt','w') as f:
+        f.write(text)
     return text
 
-
-def find_proper_nouns(tokens):
-    names = set()
-    for i, t in enumerate(tokens):
-        if t.lower() in ['to', 'at', 'in'] \
-                and (tokens[i+1][0] == tokens[i+1][0].upper() or  t == 'the') \
-                and tokens[i+1] not in ['Mr','Mrs', 'Sir', 'Dr', 'Almighty', 'God', 'English', 'Captain'] \
-                and not tokens[i+1][0].isnumeric() \
-                and not re.match('L\d+', tokens[i+1]):
-            names.add(' '.join([t, tokens[i+1], tokens[i+2], tokens[i+3]]))
-        #if t[0] == t[0].upper() and not t[0].isnumeric() and not re.match('L\d+',t):
-        # names.add(' '.join([t[i],t[i]]))
-    return names
-
-
-def get_structured_data(raw_text):
+def get_structured_data(raw_text, day_formats_list):
     lines = raw_text.splitlines()
     entries = []
+    # Find dates like 'FEBRUARY 1665-1666' and 'JULY 1661'
     month_year_match_regex = '^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d|\d\d)$'
-    day_of_month_regex = f'^(?:[A-Z]{{1}}[a-zA-Z]{{2,}}\.*\s){{0,1}}({"|".join(day_formats)})(?:\.*\s|,|,\s|\:\s|\.\s\[)[A-Z\(\d]'
+    # Find days of month, '1st' '23rd' '30th' etc, Pepys formats these dates inconsistently,
+    # specified in day_formats_list variable:
+    day_of_month_regex = f'^(?:[A-Z]{{1}}[a-zA-Z]{{2,}}\.*\s){{0,1}}({"|".join(day_formats)}' \
+                         f')(?:\.*\s|,|,\s|\:\s|\.\s\[)[A-Z\(\d]'
     for i, line in enumerate(lines):
         month_year = re.match(month_year_match_regex, line)
         if month_year:
             month = month_year.group(1)
             year = month_year.group(2)
-            for j, line2 in enumerate(lines[i+1:]):
-                if re.match(month_year_match_regex, line2):
+            for j, line_in_month in enumerate(lines[i+1:]):
+                if re.match(month_year_match_regex, line_in_month):
                     break
-                day_match = re.match(day_of_month_regex, line2)
+                day_match = re.match(day_of_month_regex, line_in_month)
                 if day_match:
                     day = day_match.group(1)
                     day = int(re.search(r'\d+', day).group())
                     lines_for_entry = []
-                    for lines3 in lines[i+j+1:]:
-                        day_match2 = re.match(day_of_month_regex, lines3)
+                    for entry_lines in lines[i+j+1:]:
+                        day_match2 = re.match(day_of_month_regex, entry_lines)
                         if day_match2 and day != int(re.search(r'\d+', day_match2.group(1)).group()):
                             break
-                        if re.search('\w', lines3) and not re.match('^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d|\d\d)$', lines3):
-                            lines_for_entry.append(lines3)
+                        if re.search('\w', entry_lines) and not re.match('^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d|\d\d)$',
+                                                                         entry_lines):
+                            lines_for_entry.append(entry_lines)
                             date_obj = datetime(int(year), int(MONTHS[month]), int(day))
                             date_string = date_obj.strftime("%Y-%m-%d")
+                            # some dates only have the last 2 digits, this fixes those eg 67 -> 1667:
                             if len(year) == 2:
                                 year = '16' + year
                     entries.append({'date': date_string, 'entry': ' '.join(lines_for_entry)})
@@ -94,7 +85,7 @@ if __name__ == "__main__":
             raw = f.read()
 
     raw = remove_text_pepys_did_not_write(raw)
-    entries_data = get_structured_data(raw)
+    entries_data = get_structured_data(raw, day_formats)
     print(f'Number of entries: {len(entries_data)}')
     entries_df = pd.DataFrame(entries_data)
     entries_df['dup_date'] = entries_df['date'].duplicated()

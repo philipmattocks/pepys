@@ -9,6 +9,7 @@ from nltk import ngrams
 import nltk
 import seaborn as sns
 import numpy as np
+import string
 nltk.download('punkt')
 nltk.download('stopwords')
 
@@ -42,7 +43,7 @@ def freq_dist(df, n):
     remerged = ' '.join(df['entry'])
     stop = stopwords.words('english')
     words = word_tokenize(remerged)
-    words = [w for w in words if w.lower() not in stop and w.isalpha()]
+    words = [w for w in words if w.lower() not in stop and w not in string.punctuation + '’‘']
     ngrams_dist = ngrams(words, n)
     return FreqDist(ngrams_dist)
 

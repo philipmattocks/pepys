@@ -78,35 +78,31 @@ def lemmatise(pos_tagged_text):
     return [WordNetLemmatizer().lemmatize(tagged_word[0], tagged_word[1]) for tagged_word in pos_tagged_text]
 
 
-def pre_process_for_sentiment_analysis(df):
-    # print(df['entry'][0])
-    df['processed'] = df['entry'].apply(expand_contractions)
-    # print(df['processed'][0])
-    df['processed'] = df['processed'].apply(lower_case)
-    # print(df['processed'][0])
-    df['processed'] = df['processed'].apply(remove_parentheses)
-    # print(df['processed'][0])
-    df['processed'] = df['processed'].apply(tokenise_to_sentences)
-    # print(df['processed'][0])
-    df = df.explode('processed', ignore_index=True)
-    df['processed'] = df['processed'].apply(split_on_commas)
-    # print(df['processed'][0])
-    df = df.explode('processed', ignore_index=True)
+def pre_process(df, remove_contractions=True, make_lower_case=True, remove_parenth=True, split_into_sentences=True,
+                split_between_commas=True, remove_punct_from_words=True, remove_stops=True, lematise_words=True):
+    df['processed'] = df['entry']
+    if remove_contractions:
+        df['processed'] = df['entry'].apply(expand_contractions)
+    if make_lower_case:
+        df['processed'] = df['processed'].apply(lower_case)
+    if remove_parenth:
+        df['processed'] = df['processed'].apply(remove_parentheses)
+    if split_into_sentences:
+        df['processed'] = df['processed'].apply(tokenise_to_sentences)
+        df = df.explode('processed', ignore_index=True)
+    if split_between_commas:
+        df['processed'] = df['processed'].apply(split_on_commas)
+        df = df.explode('processed', ignore_index=True)
     df['processed'] = df['processed'].apply(tokenise)
-    # print(df['processed'][0])
-    df['processed'] = df['processed'].apply(remove_punct)
-    # print(df['processed'][0])
-    df['processed'] = df['processed'].apply(lambda x: remove_stop_words(x, stopwords.words('english')))
-    # print(df['processed'][0])
-    df['pos_tags'] = df['processed'].apply(pos_tag)
-    # print(df['pos_tags'][0])
-    df['wordnet_pos_tags'] = df['pos_tags'].apply(get_word_net_tags)
-    # print(df['wordnet_pos_tags'][0])
-    df['lem'] = df['wordnet_pos_tags'].apply(lemmatise)
-    # print(df['lem'][0])
-    df['lem_joined'] = [' '.join(map(str, letter)) for letter in df['lem']]
-
-    # print(df['lem_joined'].head(5))
+    if remove_punct_from_words:
+        df['processed'] = df['processed'].apply(remove_punct)
+    if remove_stops:
+        df['processed'] = df['processed'].apply(lambda x: remove_stop_words(x, stopwords.words('english')))
+    if lematise_words:
+        df['pos_tags'] = df['processed'].apply(pos_tag)
+        df['wordnet_pos_tags'] = df['pos_tags'].apply(get_word_net_tags)
+        df['lem'] = df['wordnet_pos_tags'].apply(lemmatise)
+        df['lem_joined'] = [' '.join(map(str, letter)) for letter in df['lem']]
     return df
 
 

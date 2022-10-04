@@ -4,3 +4,6 @@ contractions
 textblob
 matplotlib
 vaderSentiment
+spacy
+en_core_web_sm
+plotly

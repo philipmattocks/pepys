@@ -1,12 +1,12 @@
 from textblob import TextBlob
 import pandas as pd
-from pre_process import pre_process_for_sentiment_analysis
+from pre_process import pre_process
 import matplotlib.pyplot as plt
 from datetime import datetime
 
 
 def get_sentiment_for_each_day(df):
-    df = pre_process_for_sentiment_analysis(df)
+    df = pre_process(df)
     df['sentiment'] = df['lem_joined'].apply(lambda x: TextBlob(x).sentiment.polarity)
     return df
 
