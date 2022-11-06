@@ -8,7 +8,6 @@ from nltk.corpus import wordnet
 import contractions
 from nltk.stem import WordNetLemmatizer
 
-
 def get_wordnet_pos(treebank_tag):
 
     if treebank_tag.startswith('J'):
@@ -54,7 +53,7 @@ def remove_parentheses(text):
     return ''.join([char for char in text if char not in ['(', ')']])
 
 def remove_punct(text):
-    return [word for word in text if word not in string.punctuation]
+    return [word for word in text if word not in string.punctuation+"’" +'“'+'”']
 
 
 def get_wordnet_pos(tag):
@@ -105,4 +104,21 @@ def pre_process(df, remove_contractions=True, make_lower_case=True, remove_paren
         df['lem_joined'] = [' '.join(map(str, letter)) for letter in df['lem']]
     return df
 
+def extract_specific_pos_types(pos_tuple):
+    names = []
+    for i in pos_tuple:
+        if i[0] == 'JJ':
+            names.append(i[1])
+
+
+
+if __name__ == "__main__":
+    entries = pd.read_csv('entries.csv')[:50]
+    entries = pre_process(entries)
+    NNP = []
+    for pos_pairs in entries['pos_tags']:
+        for word,pos in pos_pairs:
+            if pos == 'NNP':
+                NNP.append(word)
+    print(NNP)
 

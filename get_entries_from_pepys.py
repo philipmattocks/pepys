@@ -12,6 +12,7 @@ DOWNLOAD = False
 
 
 def remove_text_pepys_did_not_write(text):
+    """remove editors' notes etc to leave only Pepys' original text"""
     print('removing non-original text')
     text = text[text.find('JANUARY 1659-1660'):text.rfind('END OF THE DIARY.')]
     editors_notes = '\s\s\s\s\sETEXT EDITOR[\s\S]*?(?=JANUARY)'
@@ -24,14 +25,16 @@ def remove_text_pepys_did_not_write(text):
         f.write(text)
     return text
 
+
 def get_structured_data(raw_text, day_formats_list):
+    """Convert raw text into pandas DF with date column and text column"""
     lines = raw_text.splitlines()
     entries = []
     # Find dates like 'FEBRUARY 1665-1666' and 'JULY 1661'
     month_year_match_regex = '^([A-Z]+)\s*(?:1\d\d\d-)*(1\d\d\d|\d\d)$'
     # Find days of month, '1st' '23rd' '30th' etc, Pepys formats these dates inconsistently,
     # specified in day_formats_list variable:
-    day_of_month_regex = f'^(?:[A-Z]{{1}}[a-zA-Z]{{2,}}\.*\s){{0,1}}({"|".join(day_formats)}' \
+    day_of_month_regex = f'^(?:[A-Z]{{1}}[a-zA-Z]{{2,}}\.*\s){{0,1}}({"|".join(day_formats_list)}' \
                          f')(?:\.*\s|,|,\s|\:\s|\.\s\[)[A-Z\(\d]'
     for i, line in enumerate(lines):
         month_year = re.match(month_year_match_regex, line)
@@ -59,10 +62,11 @@ def get_structured_data(raw_text, day_formats_list):
                             if len(year) == 2:
                                 year = '16' + year
                     entries.append({'date': date_string, 'entry': ' '.join(lines_for_entry)})
-    return entries
+    return pd.DataFrame(entries)
 
 
 def correct_date_typos(df):
+    """Correct specific typos in the dates in the raw text"""
     dates = df['date']
     dates.iloc[df.loc[df['entry'].str.startswith('4th. At the office all the morning. At noon I')].index] = '1661-11-14'
     dates.iloc[df.loc[df['entry'].str.startswith('10th. Sir W. Pen and I did a little business at')].index] = '1662-05-20'
@@ -83,15 +87,9 @@ if __name__ == "__main__":
         print('reading text file')
         with open('./4200-0.txt') as f:
             raw = f.read()
-
     raw = remove_text_pepys_did_not_write(raw)
-    entries_data = get_structured_data(raw, day_formats)
-    print(f'Number of entries: {len(entries_data)}')
-    entries_df = pd.DataFrame(entries_data)
-    entries_df['dup_date'] = entries_df['date'].duplicated()
-    duplicate_dates = entries_df.loc[entries_df['dup_date'] == True]['date']
-    entries_with_dups = entries_df.loc[entries_df['date'].isin(duplicate_dates)]
-    print(f'Following entries seem to have duplicates caused by typos in the source text:  {entries_with_dups}')
+    entries_df = get_structured_data(raw, day_formats)
+    print(f'Number of entries: {entries_df.shape[0]}')
     print(f'correcting typos in dates')
     entries_df = correct_date_typos(entries_df)
     print(f'Saving to entries.csv')
