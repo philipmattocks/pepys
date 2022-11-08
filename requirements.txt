@@ -8,4 +8,6 @@ plotly
 seaborn
 matplotlib
 chart_studio
+pysentimiento
+flair
 
